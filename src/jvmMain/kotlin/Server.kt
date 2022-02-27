@@ -10,17 +10,10 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import org.litote.kmongo.*
 import org.litote.kmongo.coroutine.*
-import org.litote.kmongo.reactivestreams.KMongo
 
-
-
-val client = KMongo.createClient().coroutine
-val database = client.getDatabase("shoppingList")
-val collection = database.getCollection<ShoppingListItem>()
 
 fun main() {
-    val port = System.getenv("PORT")?.toInt()?: 9090
-    embeddedServer(Netty, port) {
+    embeddedServer(Netty, 9090) {
         install(ContentNegotiation) {
             json()
         }
@@ -33,13 +26,14 @@ fun main() {
         install(Compression) {
             gzip()
         }
-//          Old Collection
-//        val shoppingList = mutableListOf(
-//            ShoppingListItem("Cucumbers 🥒", 1),
-//            ShoppingListItem("Tomatoes 🍅", 2),
-//            ShoppingListItem("Orange Juice 🍊", 3)
-//        )
 
+        val shoppingList = mutableListOf(
+            ShoppingListItem("Cucumbers 🥒", 1),
+            ShoppingListItem("Tomatoes 🍅", 2),
+            ShoppingListItem("Orange Juice 🍊", 3)
+        )
+
+// . . .
         routing {
             get("/"){
                 call.respondText(
@@ -55,16 +49,15 @@ fun main() {
             }
             route(ShoppingListItem.path) {
                 get {
-                    call.respond(collection.find().toList())
+                    call.respond(shoppingList)
                 }
                 post {
-//                  Old:  shoppingList += call.receive<ShoppingListItem>()
-                    collection.insertOne(call.receive<ShoppingListItem>())
+                    shoppingList += call.receive<ShoppingListItem>()
                     call.respond(HttpStatusCode.OK)
                 }
                 delete("/{id}") {
                     val id = call.parameters["id"]?.toInt() ?: error("Invalid delete request")
-                    collection.deleteOne(ShoppingListItem:: id eq id)
+                    shoppingList.removeIf { it.id == id }
                     call.respond(HttpStatusCode.OK)
                 }
             }
